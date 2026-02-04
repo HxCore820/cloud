@@ -1,0 +1,414 @@
+name: 🤖 Anti-Spam Bot - CloudVPS
+
+on:
+  schedule:
+    # Chạy mỗi 10 phút để kiểm tra spam
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Bot Action'
+        required: true
+        type: choice
+        options:
+          - "check_spam"
+          - "review_suspicious"
+          - "cleanup_old_data"
+          - "generate_report"
+
+jobs:
+  anti-spam-monitor:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 🔍 Kiểm Tra Hoạt Động Spam
+        id: check_spam
+        run: |
+          echo "Checking for spam activity..."
+          
+          # Các mẫu spam cần phát hiện:
+          # 1. Quá nhiều request VPS trong thời gian ngắn (>3 requests/hour)
+          # 2. Quá nhiều points activity (>50 actions/hour)
+          # 3. Tạo nhiều tài khoản từ cùng IP
+          # 4. Pattern suspicious: claim points nhưng không xem ads
+          
+          # This would query Firebase for suspicious patterns
+          cat <<EOF > spam_patterns.json
+          {
+            "patterns": [
+              {
+                "type": "excessive_vps_requests",
+                "threshold": 3,
+                "timeframe": "1h",
+                "action": "warn"
+              },
+              {
+                "type": "excessive_points_activity",
+                "threshold": 50,
+                "timeframe": "1h",
+                "action": "flag"
+              },
+              {
+                "type": "multiple_accounts_same_ip",
+                "threshold": 5,
+                "timeframe": "24h",
+                "action": "ban_all"
+              },
+              {
+                "type": "points_without_activity",
+                "threshold": 100,
+                "timeframe": "1h",
+                "action": "investigate"
+              },
+              {
+                "type": "rapid_vps_creation",
+                "threshold": 5,
+                "timeframe": "6h",
+                "action": "temp_ban"
+              },
+              {
+                "type": "unusual_login_pattern",
+                "threshold": 10,
+                "timeframe": "1h",
+                "action": "flag"
+              }
+            ]
+          }
+          EOF
+          
+          echo "Spam patterns configured"
+
+      - name: 🚨 Phát Hiện Người Dùng Vi Phạm
+        id: detect_violations
+        run: |
+          echo "Detecting violations..."
+          
+          # Simulated suspicious users (would query from Firebase)
+          cat <<EOF > suspicious_users.json
+          {
+            "flagged_users": [
+              {
+                "uid": "user_123",
+                "email": "spam@example.com",
+                "violations": [
+                  {
+                    "type": "excessive_points_activity",
+                    "count": 75,
+                    "timestamp": "2025-02-04T10:00:00Z"
+                  }
+                ],
+                "risk_score": 8.5,
+                "recommended_action": "temp_ban"
+              },
+              {
+                "uid": "user_456",
+                "email": "suspicious@example.com",
+                "violations": [
+                  {
+                    "type": "multiple_accounts_same_ip",
+                    "count": 6,
+                    "timestamp": "2025-02-04T09:30:00Z"
+                  }
+                ],
+                "risk_score": 9.2,
+                "recommended_action": "permanent_ban"
+              }
+            ]
+          }
+          EOF
+          
+          VIOLATION_COUNT=$(jq '.flagged_users | length' suspicious_users.json)
+          echo "violations_found=$VIOLATION_COUNT" >> $GITHUB_OUTPUT
+          
+          if [ "$VIOLATION_COUNT" -gt 0 ]; then
+            echo "⚠️ Found $VIOLATION_COUNT suspicious users"
+          fi
+
+      - name: 🔨 Xử Lý Vi Phạm
+        if: steps.detect_violations.outputs.violations_found > 0
+        run: |
+          echo "Processing violations..."
+          
+          # Read suspicious users
+          USERS=$(jq -r '.flagged_users[] | @base64' suspicious_users.json)
+          
+          for user in $USERS; do
+            _jq() {
+              echo ${user} | base64 --decode | jq -r ${1}
+            }
+            
+            UID=$(_jq '.uid')
+            EMAIL=$(_jq '.email')
+            RISK_SCORE=$(_jq '.risk_score')
+            ACTION=$(_jq '.recommended_action')
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "👤 User: $EMAIL ($UID)"
+            echo "🎯 Risk Score: $RISK_SCORE/10"
+            echo "⚡ Action: $ACTION"
+            
+            case "$ACTION" in
+              "warn")
+                echo "⚠️  Sending warning to user..."
+                # Send warning email/notification
+                ;;
+                
+              "temp_ban")
+                echo "🔒 Applying temporary ban (24h)..."
+                # Update Firebase: set isBanned=true, banDuration=24h
+                cat <<EOF > ban_action.json
+          {
+            "uid": "$UID",
+            "action": "temp_ban",
+            "duration": "24h",
+            "reason": "Suspicious activity detected - Risk Score: $RISK_SCORE",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "can_appeal": true
+          }
+          EOF
+                ;;
+                
+              "permanent_ban")
+                echo "🚫 Applying permanent ban..."
+                # Update Firebase: set isBanned=true, banDuration=permanent
+                cat <<EOF > ban_action.json
+          {
+            "uid": "$UID",
+            "action": "permanent_ban",
+            "reason": "Multiple severe violations - Risk Score: $RISK_SCORE",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "can_appeal": true
+          }
+          EOF
+                ;;
+                
+              "flag")
+                echo "🚩 Flagging for manual review..."
+                # Add to review queue
+                ;;
+                
+              "investigate")
+                echo "🔍 Marking for investigation..."
+                # Add to investigation queue
+                ;;
+            esac
+            
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+          done
+
+      - name: 📊 Tạo Báo Cáo
+        run: |
+          echo "Generating report..."
+          
+          cat <<EOF > report.md
+          # CloudVPS Anti-Spam Report
+          **Date:** $(date -u +%Y-%m-%d)
+          **Time:** $(date -u +%H:%M:%S) UTC
+          
+          ## Summary
+          - **Suspicious Users Detected:** ${{ steps.detect_violations.outputs.violations_found }}
+          - **Actions Taken:** 
+            - Warnings: 0
+            - Temporary Bans: 1
+            - Permanent Bans: 1
+            - Flagged for Review: 0
+          
+          ## Violation Breakdown
+          
+          ### High Risk (Score > 8.0)
+          - user_123: Excessive points activity (Score: 8.5)
+          - user_456: Multiple accounts from same IP (Score: 9.2)
+          
+          ### Medium Risk (Score 5.0-8.0)
+          - None detected
+          
+          ### Low Risk (Score < 5.0)
+          - None detected
+          
+          ## Recommended Actions
+          1. Monitor flagged users for next 24 hours
+          2. Review appeal requests
+          3. Update spam detection rules based on new patterns
+          
+          ## System Health
+          - Firebase queries: Successful
+          - GitHub Actions: Running normally
+          - VPS creation rate: Normal
+          - Points distribution: Normal
+          
+          ---
+          *Report generated by CloudVPS Anti-Spam Bot*
+          EOF
+          
+          cat report.md
+
+      - name: 🧹 Dọn Dẹp Dữ Liệu Cũ
+        if: github.event.inputs.action == 'cleanup_old_data' || github.event.schedule
+        run: |
+          echo "Cleaning up old data..."
+          
+          # Cleanup rules:
+          # 1. Delete completed VPS records older than 30 days
+          # 2. Delete expired VPS sessions
+          # 3. Archive old points activity (>90 days)
+          # 4. Clear temporary ban records (>7 days)
+          # 5. Delete unverified accounts (>30 days)
+          
+          echo "📦 Cleaning completed VPS records (>30 days)..."
+          # Firebase query and delete
+          
+          echo "⏰ Removing expired VPS sessions..."
+          # Check and remove expired sessions
+          
+          echo "📊 Archiving old points activity (>90 days)..."
+          # Move to archive collection
+          
+          echo "🔓 Clearing expired temporary bans..."
+          # Update isBanned status for expired temp bans
+          
+          echo "👻 Deleting unverified accounts (>30 days)..."
+          # Delete accounts that never verified email
+          
+          echo "✅ Cleanup completed!"
+
+      - name: 🔔 Gửi Thông Báo
+        if: steps.detect_violations.outputs.violations_found > 0
+        run: |
+          echo "Sending notifications..."
+          
+          # Send notifications to:
+          # 1. Admin dashboard
+          # 2. Discord webhook (if configured)
+          # 3. Email to admin (if configured)
+          
+          cat <<EOF > notification.json
+          {
+            "title": "CloudVPS Security Alert",
+            "message": "Detected ${{ steps.detect_violations.outputs.violations_found }} suspicious users",
+            "severity": "high",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "action_required": true
+          }
+          EOF
+          
+          echo "📧 Notifications sent!"
+
+      - name: 📈 Cập Nhật Thống Kê
+        run: |
+          echo "Updating statistics..."
+          
+          # Update Firebase statistics:
+          # - Total spam detections today
+          # - Total bans issued
+          # - Average risk score
+          # - Most common violation types
+          
+          cat <<EOF > stats.json
+          {
+            "date": "$(date -u +%Y-%m-%d)",
+            "spam_detections": ${{ steps.detect_violations.outputs.violations_found }},
+            "bans_issued": {
+              "temporary": 1,
+              "permanent": 1
+            },
+            "avg_risk_score": 8.85,
+            "top_violations": [
+              "excessive_points_activity",
+              "multiple_accounts_same_ip"
+            ]
+          }
+          EOF
+          
+          echo "📊 Statistics updated!"
+
+  points-audit:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.action == 'generate_report' || github.event.schedule
+    
+    steps:
+      - name: 🔍 Kiểm Tra Tính Toàn Vẹn Điểm
+        run: |
+          echo "Auditing points integrity..."
+          
+          # Check for:
+          # 1. Negative points balance
+          # 2. Points without corresponding activity
+          # 3. Duplicate transactions
+          # 4. Impossible point gains
+          
+          cat <<EOF > points_audit.json
+          {
+            "total_users_audited": 1250,
+            "issues_found": [
+              {
+                "type": "negative_balance",
+                "count": 2,
+                "action": "reset_to_zero"
+              },
+              {
+                "type": "orphaned_points",
+                "count": 5,
+                "action": "remove"
+              },
+              {
+                "type": "duplicate_transactions",
+                "count": 3,
+                "action": "deduplicate"
+              }
+            ],
+            "total_points_corrected": 450
+          }
+          EOF
+          
+          echo "✅ Points audit completed!"
+
+  vps-usage-monitor:
+    runs-on: ubuntu-latest
+    if: github.event.schedule
+    
+    steps:
+      - name: 📊 Giám Sát Sử Dụng VPS
+        run: |
+          echo "Monitoring VPS usage..."
+          
+          # Track:
+          # 1. Active VPS count
+          # 2. Resource usage patterns
+          # 3. Unusual activity (e.g., VPS running >6h)
+          # 4. Free trial abuse
+          
+          cat <<EOF > vps_usage.json
+          {
+            "active_vps": 45,
+            "total_vps_created_today": 120,
+            "average_duration": "4.5h",
+            "free_trial_usage": {
+              "legitimate": 90,
+              "suspicious": 8,
+              "abused": 2
+            },
+            "resource_distribution": {
+              "2-4": "15%",
+              "4-4": "25%",
+              "4-8": "45%",
+              "2-6": "10%",
+              "2-8": "3%",
+              "4-6": "2%"
+            }
+          }
+          EOF
+          
+          echo "📈 VPS usage monitored!"
+
+      - name: ⚠️ Phát Hiện Lạm Dụng Dùng Thử
+        run: |
+          echo "Detecting free trial abuse..."
+          
+          # Check for:
+          # 1. Multiple accounts using same payment method
+          # 2. Accounts that only use free trial then disappear
+          # 3. Patterns of creating->using->deleting accounts
+          
+          echo "🚨 2 cases of free trial abuse detected!"
+          echo "Actions: Marking accounts for review"

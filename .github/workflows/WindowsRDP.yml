@@ -1,0 +1,301 @@
+name: 🖥️ Windows RDP - CloudVPS
+
+on: 
+  workflow_dispatch:
+    inputs:
+      vps_id:
+        description: 'VPS Request ID from Firebase'
+        required: true
+        type: string
+      
+      config:
+        description: '⚙️ Cấu hình VPS'
+        required: true
+        default: '4-8-all'
+        type: choice
+        options:
+          - "2-4-2012"    # 2 CPU / 4 GB RAM - Win 2012 (50đ/h)
+          - "4-4-all"     # 4 CPU / 4 GB RAM - All Win (75đ/h)
+          - "4-8-all"     # 4 CPU / 8 GB RAM - All Win (100đ/h)
+          - "2-6-server"  # 2 CPU / 6 GB RAM - Win Server (60đ/h)
+          - "2-8-server"  # 2 CPU / 8 GB RAM - Win Server (80đ/h)
+          - "4-6-all"     # 4 CPU / 6 GB RAM - All Win (90đ/h)
+      
+      os_version:
+        description: '📀 Hệ Điều Hành'
+        required: true
+        default: '2025'
+        type: choice
+        options: 
+          - "2025"
+          - "2022"
+          - "2019"
+          - "2012"
+          - "11"
+          - "10"
+      
+      duration:
+        description: '⏰ Thời gian sử dụng (giờ)'
+        required: true
+        default: '6'
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+          - "4"
+          - "5"
+          - "6"
+      
+      language:
+        description: '🌐 Ngôn ngữ'
+        required: true
+        default: 'Tiếng Việt'
+        type: choice
+        options:
+          - "English"
+          - "Tiếng Việt"
+
+jobs:
+  validate-request:
+    runs-on: ubuntu-latest
+    outputs:
+      is_valid: ${{ steps.validate.outputs.is_valid }}
+      user_id: ${{ steps.validate.outputs.user_id }}
+      
+    steps:
+      - name: 🔐 Validate VPS Request
+        id: validate
+        run: |
+          # This would validate against Firebase
+          # Check if user has enough points
+          # Check if user is not banned
+          # For now, just pass
+          echo "is_valid=true" >> $GITHUB_OUTPUT
+          echo "user_id=demo_user" >> $GITHUB_OUTPUT
+
+  windows-rdp:
+    needs: validate-request
+    if: needs.validate-request.outputs.is_valid == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(github.event.inputs.duration) * 60 }}
+    
+    steps:
+      - name: 🔧 Parse Configuration
+        id: config
+        run: |
+          CONFIG="${{ github.event.inputs.config }}"
+          
+          # Parse CPU and RAM from config
+          if [[ "$CONFIG" == "2-4-2012" ]]; then
+            CPU="2"
+            RAM="4G"
+          elif [[ "$CONFIG" == "4-4-all" ]]; then
+            CPU="4"
+            RAM="4G"
+          elif [[ "$CONFIG" == "4-8-all" ]]; then
+            CPU="4"
+            RAM="8G"
+          elif [[ "$CONFIG" == "2-6-server" ]]; then
+            CPU="2"
+            RAM="6G"
+          elif [[ "$CONFIG" == "2-8-server" ]]; then
+            CPU="2"
+            RAM="8G"
+          elif [[ "$CONFIG" == "4-6-all" ]]; then
+            CPU="4"
+            RAM="6G"
+          fi
+          
+          echo "cpu=$CPU" >> $GITHUB_OUTPUT
+          echo "ram=$RAM" >> $GITHUB_OUTPUT
+          
+          VERSION="${{ github.event.inputs.os_version }}"
+          
+          # Determine Windows Version name
+          case "$VERSION" in
+            "2025") OS_NAME="Windows Server 2025" ;;
+            "2022") OS_NAME="Windows Server 2022" ;;
+            "2019") OS_NAME="Windows Server 2019" ;;
+            "2012") OS_NAME="Windows Server 2012" ;;
+            "11") OS_NAME="Windows 11 Professional" ;;
+            "10") OS_NAME="Windows 10 Professional" ;;
+          esac
+          
+          echo "os_name=$OS_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🐳 Setup Docker Windows
+        run: |
+          sudo apt-get update > /dev/null 2>&1
+          
+          CPU="${{ steps.config.outputs.cpu }}"
+          RAM="${{ steps.config.outputs.ram }}"
+          VERSION="${{ steps.config.outputs.version }}"
+          
+          # Create Docker Compose Configuration
+          cat <<EOF > docker-compose.yml
+          version: "3.9"
+          services:
+            windows:
+              image: dockurr/windows
+              container_name: cloudvps_rdp
+              privileged: true
+              environment:
+                VERSION: "$VERSION"
+                USERNAME: "CloudVPS"
+                PASSWORD: "CloudVPS@2025"
+                RAM_SIZE: "$RAM"
+                CPU_CORES: "$CPU"
+                DISK_SIZE: "60G"
+              devices: [ "/dev/kvm" ]
+              ports:
+                - "3389:3389"
+                - "8006:8006"
+          EOF
+          
+          docker compose up -d > /dev/null 2>&1
+          
+          echo "OS_NAME=${{ steps.config.outputs.os_name }}" >> $GITHUB_ENV
+          echo "CPU=$CPU" >> $GITHUB_ENV
+          echo "RAM=$RAM" >> $GITHUB_ENV
+          
+          # Download Tunnel
+          wget -q https://github.com/kami2k1/tunnel/releases/latest/download/kami-tunnel-linux-amd64.tar.gz
+          tar -xzf kami-tunnel-linux-amd64.tar.gz > /dev/null 2>&1
+          chmod +x kami-tunnel
+          
+          # Start Tunnel for RDP
+          nohup ./kami-tunnel 3389 > kami_tunnel_rdp.log 2>&1 &
+          RDP_PID=$!
+          echo "RDP_PID=$RDP_PID" >> $GITHUB_ENV
+          
+          sleep 5
+          
+          # Start Tunnel for Web Viewer
+          nohup ./kami-tunnel 8006 > kami_tunnel_web.log 2>&1 &
+          WEB_PID=$!
+          echo "WEB_PID=$WEB_PID" >> $GITHUB_ENV
+
+      - name: 🌐 Lấy Thông Tin Kết Nối
+        id: connection
+        run: |
+          LANG="${{ github.event.inputs.language }}"
+          
+          # Get RDP IP
+          RDP_PUBLIC_IP=""
+          RDP_RETRY=0
+          
+          while [ -z "$RDP_PUBLIC_IP" ] && [ $RDP_RETRY -lt 60 ]; do
+            if [ -f kami_tunnel.txt ]; then
+              RDP_CONTENT=$(cat kami_tunnel.txt 2>/dev/null | head -1)
+              if [[ "$RDP_CONTENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$ ]]; then
+                RDP_PUBLIC_IP="$RDP_CONTENT"
+                break
+              fi
+            fi
+            sleep 3
+            RDP_RETRY=$((RDP_RETRY + 1))
+          done
+          
+          # Get Web IP
+          WEB_PUBLIC_IP=""
+          WEB_RETRY=0
+          
+          while [ -z "$WEB_PUBLIC_IP" ] && [ $WEB_RETRY -lt 60 ]; do
+            if [ -f kami_tunnel.txt ]; then
+              WEB_CONTENT=$(cat kami_tunnel.txt 2>/dev/null | tail -1)
+              if [[ "$WEB_CONTENT" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:[0-9]+$ ]] && [ "$WEB_CONTENT" != "$RDP_PUBLIC_IP" ]; then
+                WEB_PUBLIC_IP="$WEB_CONTENT"
+                break
+              fi
+            fi
+            sleep 3
+            WEB_RETRY=$((WEB_RETRY + 1))
+          done
+          
+          echo "rdp_ip=$RDP_PUBLIC_IP" >> $GITHUB_OUTPUT
+          echo "web_ip=$WEB_PUBLIC_IP" >> $GITHUB_OUTPUT
+          
+          # Display info
+          echo ""
+          if [ "$LANG" = "Tiếng Việt" ]; then
+            echo "╔═══════════════════════════════════════════════════════════════════════╗"
+            echo "║         ✅ $OS_NAME - SẴN SÀNG KẾT NỐI (CloudVPS)"
+            echo "╠═══════════════════════════════════════════════════════════════════════╣"
+            echo "║  🖥️  KẾT NỐI REMOTE DESKTOP (RDP)                                     ║"
+            echo "║  🌐  IP Công khai   : $RDP_PUBLIC_IP"
+            echo "║  👤  Tài khoản      : CloudVPS                                        ║"
+            echo "║  🔐  Mật khẩu       : CloudVPS@2025                                   ║"
+            echo "║                                                                       ║"
+            echo "║  🌐  TRÌNH XEM WEB                                                    ║"
+            echo "║  🔗  Địa chỉ        : http://$WEB_PUBLIC_IP"
+            echo "║                                                                       ║"
+            echo "║  💻  TÀI NGUYÊN                                                       ║"
+            echo "║  ⚡  CPU            : $CPU vCPU                                       ║"
+            echo "║  🧠  RAM            : $RAM                                            ║"
+            echo "║  💾  Lưu trữ        : 60GB                                            ║"
+            echo "║  ⏰  Thời gian      : ${{ github.event.inputs.duration }} giờ        ║"
+            echo "╚═══════════════════════════════════════════════════════════════════════╝"
+          else
+            echo "╔═══════════════════════════════════════════════════════════════════════╗"
+            echo "║         ✅ $OS_NAME - READY (CloudVPS)"
+            echo "╠═══════════════════════════════════════════════════════════════════════╣"
+            echo "║  🖥️  REMOTE DESKTOP (RDP)                                             ║"
+            echo "║  🌐  Public IP      : $RDP_PUBLIC_IP"
+            echo "║  👤  Username       : CloudVPS                                        ║"
+            echo "║  🔐  Password       : CloudVPS@2025                                   ║"
+            echo "║                                                                       ║"
+            echo "║  🌐  WEB VIEWER                                                       ║"
+            echo "║  🔗  Address        : http://$WEB_PUBLIC_IP"
+            echo "║                                                                       ║"
+            echo "║  💻  RESOURCES                                                        ║"
+            echo "║  ⚡  CPU            : $CPU vCPU                                       ║"
+            echo "║  🧠  RAM            : $RAM                                            ║"
+            echo "║  💾  Storage        : 60GB                                            ║"
+            echo "║  ⏰  Duration       : ${{ github.event.inputs.duration }} hours      ║"
+            echo "╚═══════════════════════════════════════════════════════════════════════╝"
+          fi
+
+      - name: 📝 Update Firebase
+        run: |
+          # This would update Firebase with connection info
+          # Store RDP IP, Web IP, and status
+          echo "VPS ID: ${{ github.event.inputs.vps_id }}"
+          echo "RDP: ${{ steps.connection.outputs.rdp_ip }}"
+          echo "Web: ${{ steps.connection.outputs.web_ip }}"
+          echo "Status: active"
+
+      - name: ⏰ Session Keepalive
+        run: |
+          LANG="${{ github.event.inputs.language }}"
+          DURATION_HOURS="${{ github.event.inputs.duration }}"
+          END_TIME=$(($(date +%s) + $DURATION_HOURS * 3600))
+          
+          while [ $(date +%s) -lt $END_TIME ]; do
+            REMAINING=$(( ($END_TIME - $(date +%s)) / 60 ))
+            HOURS=$(($REMAINING / 60))
+            MINUTES=$(($REMAINING % 60))
+            
+            if [ "$LANG" = "Tiếng Việt" ]; then
+              echo -ne "\r🟢 $OS_NAME Đang hoạt động | Còn lại: ${HOURS}h ${MINUTES}m | RDP: ${{ steps.connection.outputs.rdp_ip }}     "
+            else
+              echo -ne "\r🟢 $OS_NAME Active | Remaining: ${HOURS}h ${MINUTES}m | RDP: ${{ steps.connection.outputs.rdp_ip }}     "
+            fi
+            
+            sleep 30
+          done
+          
+          echo ""
+          if [ "$LANG" = "Tiếng Việt" ]; then
+            echo "⏰ Phiên VPS đã hết hạn!"
+          else
+            echo "⏰ VPS session expired!"
+          fi
+
+      - name: 🧹 Cleanup & Update Status
+        if: always()
+        run: |
+          # Update Firebase status to 'completed' or 'expired'
+          echo "Cleaning up VPS ${{ github.event.inputs.vps_id }}"
+          echo "Status: completed"
