@@ -1,0 +1,173 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    function isNotBanned() {
+      return !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBanned == false;
+    }
+    
+    function hasEnoughPoints(requiredPoints) {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return userData.points >= requiredPoints;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      
+      allow create: if isSignedIn() && isOwner(userId) &&
+                      request.resource.data.keys().hasAll([
+                        'uid', 'email', 'points', 'isBanned'
+                      ]) &&
+                      request.resource.data.points >= 0 &&
+                      request.resource.data.isBanned == false;
+      
+      allow update: if isSignedIn() && isOwner(userId) &&
+                      request.resource.data.points >= 0 &&
+                      // Không cho phép tự gỡ ban
+                      (request.resource.data.isBanned == resource.data.isBanned ||
+                       !request.resource.data.isBanned);
+      
+      allow delete: if false; // Không cho phép xóa user
+    }
+    
+    // VPS collection
+    match /vps/{vpsId} {
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == request.auth.uid ||
+                      request.auth.token.admin == true);
+      
+      allow create: if isSignedIn() && 
+                      isNotBanned() &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.status == 'pending' &&
+                      request.resource.data.hours >= 1 &&
+                      request.resource.data.hours <= 6;
+      
+      allow update: if isSignedIn() && 
+                      resource.data.userId == request.auth.uid &&
+                      // Chỉ cho phép update status
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['status', 'rdpIP', 'webViewerIP', 'expiresAt']);
+      
+      allow delete: if request.auth.token.admin == true;
+    }
+    
+    // Points Activity collection
+    match /pointsActivity/{activityId} {
+      allow read: if isSignedIn() && 
+                     resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                      isNotBanned() &&
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.points > 0 &&
+                      request.resource.data.points <= 50 && // Max 50 points per action
+                      request.resource.data.source in [
+                        'watch_ad', 'short_link', 'daily_bonus', 
+                        'referral', 'streak_bonus'
+                      ];
+      
+      allow update, delete: if false;
+    }
+    
+    // VPS Requests collection
+    match /vpsRequests/{requestId} {
+      allow read: if isSignedIn() && 
+                     (resource.data.userId == request.auth.uid ||
+                      request.auth.token.admin == true);
+      
+      allow create: if isSignedIn() && 
+                      isNotBanned() &&
+                      request.resource.data.userId == request.auth.uid;
+      
+      allow update: if request.auth.token.admin == true;
+      
+      allow delete: if request.auth.token.admin == true;
+    }
+    
+    // Suspicious Activity collection (Admin only)
+    match /suspiciousActivity/{activityId} {
+      allow read: if request.auth.token.admin == true;
+      allow write: if false; // Only through Admin SDK
+    }
+    
+    // Ban Appeals collection
+    match /banAppeals/{appealId} {
+      allow read: if isSignedIn() && 
+                     resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBanned == true;
+      
+      allow update: if request.auth.token.admin == true;
+      
+      allow delete: if request.auth.token.admin == true;
+    }
+    
+    // System Stats collection (Read only for users, write for admin)
+    match /systemStats/{statId} {
+      allow read: if isSignedIn();
+      allow write: if request.auth.token.admin == true;
+    }
+    
+    // Referral Codes collection
+    match /referralCodes/{code} {
+      allow read: if isSignedIn();
+      
+      allow create: if isSignedIn() && 
+                      request.resource.data.ownerId == request.auth.uid &&
+                      !exists(/databases/$(database)/documents/referralCodes/$(code));
+      
+      allow update: if resource.data.ownerId == request.auth.uid;
+      
+      allow delete: if resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && 
+                     resource.data.userId == request.auth.uid;
+      
+      allow update: if isSignedIn() && 
+                      resource.data.userId == request.auth.uid &&
+                      // Chỉ cho phép đánh dấu đã đọc
+                      request.resource.data.diff(resource.data).affectedKeys()
+                        .hasOnly(['read', 'readAt']);
+      
+      allow create, delete: if false; // Only through Cloud Functions
+    }
+    
+    // Daily Missions collection
+    match /dailyMissions/{missionId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only through Cloud Functions
+    }
+    
+    // User Daily Progress
+    match /userDailyProgress/{userId} {
+      allow read: if isSignedIn() && isOwner(userId);
+      
+      allow write: if isSignedIn() && 
+                      isOwner(userId) &&
+                      isNotBanned();
+    }
+    
+    // Leaderboard
+    match /leaderboard/{userId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only through Cloud Functions
+    }
+  }
+}

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudVPS - VPS Miễn Phí 6 Giờ</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="nav">
+                <div class="logo">
+                    <i class="fas fa-cloud"></i>
+                    <span>CloudVPS</span>
+                </div>
+                <nav class="nav-menu">
+                    <a href="#features">Tính Năng</a>
+                    <a href="#how-it-works">Cách Hoạt Động</a>
+                    <a href="#tasks">Nhiệm Vụ</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="#settings">Cài Đặt</a>
+                </nav>
+                <button class="btn-login" id="loginBtn">Đăng Nhập</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>VPS Miễn Phí 6H -<br>Kiếm Điểm Bằng Cách Xem Quảng Cáo</h1>
+                    <p>Xem video quảng cáo ngắn & hoàn thành nhiệm vụ để mở khóa thời gian sử dụng máy tính.</p>
+                    <div class="hero-buttons">
+                        <button class="btn-primary" id="watchAdsBtn">Xem Quảng Cáo Để Kiếm Điểm</button>
+                        <button class="btn-secondary" id="getFreeVPSBtn">Nhận VPS Miễn Phí</button>
+                    </div>
+                    <div class="progress-info">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 40%"></div>
+                        </div>
+                        <p><strong>Điểm kiếm được</strong> phiên này: <span id="sessionPoints">120</span> / <span id="totalPoints">300</span> điểm để nhận <strong>6H VPS</strong></p>
+                        <p class="refresh-info">Nhiệm vụ mới làm mới hàng ngày lúc 00:00 UTC</p>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <div class="vps-preview">
+                        <div class="vps-header">
+                            <i class="fas fa-cloud"></i>
+                            <span>CloudVPS</span>
+                        </div>
+                        <div class="vps-dashboard">
+                            <div class="chart-bars">
+                                <div class="bar" style="height: 40%"></div>
+                                <div class="bar" style="height: 65%"></div>
+                                <div class="bar" style="height: 50%"></div>
+                                <div class="bar" style="height: 80%"></div>
+                                <div class="bar" style="height: 60%"></div>
+                            </div>
+                            <div class="gauge-display">
+                                <div class="gauge-circle">
+                                    <div class="gauge-fill" style="--gauge: 75"></div>
+                                    <div class="gauge-text">75%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tasks Cards -->
+    <section class="tasks-section">
+        <div class="container">
+            <div class="tasks-grid">
+                <div class="task-card">
+                    <div class="task-icon video">
+                        <i class="fas fa-play-circle"></i>
+                    </div>
+                    <h3>Xem Video Quảng Cáo</h3>
+                    <p class="task-points">+5 điểm mỗi quảng cáo</p>
+                    <button class="task-btn">Xem Ngay</button>
+                </div>
+                <div class="task-card">
+                    <div class="task-icon link">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <h3>Hoàn Thành Liên Kết Ngắn</h3>
+                    <p class="task-points">+2 điểm mỗi liên kết</p>
+                    <button class="task-btn">Mở Liên Kết</button>
+                </div>
+                <div class="task-card">
+                    <div class="task-icon mission">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h3>Nhiệm Vụ Hàng Ngày</h3>
+                    <p class="task-points bonus-active">Streak Bonus Active!</p>
+                    <button class="task-btn">Xem Nhiệm Vụ</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <h2>Cách Hoạt Động</h2>
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-icon"><i class="fas fa-coins"></i></div>
+                    <h3>Kiếm Điểm</h3>
+                    <p>Kiếm điểm được ngay lập tức!</p>
+                </div>
+                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-icon"><i class="fas fa-server"></i></div>
+                    <h3>Đổi VPS</h3>
+                    <p>Tận hưởng VPS sau khi đủ điểm!</p>
+                </div>
+                <div class="step-arrow"><i class="fas fa-arrow-right"></i></div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-icon"><i class="fas fa-expand-arrows-alt"></i></div>
+                    <h3>Quản Lý & Mở Rộng</h3>
+                    <p>Tận hưởng tùy chọn miễn phí sau khi dùng thử!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard (Hidden until login) -->
+    <section class="dashboard hidden" id="dashboard">
+        <div class="container">
+            <div class="dashboard-sidebar">
+                <div class="logo-sidebar">
+                    <i class="fas fa-cloud"></i>
+                    <span>CloudVPS</span>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="#"><i class="fas fa-tasks"></i> Nhiệm Vụ</a>
+                    <a href="#"><i class="fas fa-server"></i> VPS</a>
+                    <a href="#"><i class="fas fa-cog"></i> Cài Đặt</a>
+                </nav>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <img src="https://ui-avatars.com/api/?name=User" alt="User" id="userAvatar">
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="userName">Jason Torraan</span>
+                        <button class="btn-logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-main">
+                <div class="welcome-section">
+                    <h2>Chào Mừng Trở Lại!</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span>Số Dư Điểm:</span>
+                                <button class="btn-earn">Kiếm Thêm <i class="fas fa-chevron-down"></i></button>
+                            </div>
+                            <div class="stat-value">1,250<span class="unit">đ</span></div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <span>Thời Gian Còn Lại:</span>
+                                <button class="btn-extend">Gia Hạn <i class="fas fa-chart-line"></i></button>
+                            </div>
+                            <div class="stat-value time">05:28:45</div>
+                        </div>
+                    </div>
+                    
+                    <div class="resources-grid">
+                        <div class="resource-card">
+                            <div class="resource-icon"><i class="fas fa-microchip"></i></div>
+                            <div class="resource-info">
+                                <span class="resource-label">Sử Dụng CPU</span>
+                                <div class="resource-gauge">
+                                    <svg class="circular-chart" viewBox="0 0 36 36">
+                                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                        <path class="circle" stroke-dasharray="25, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                        <text x="18" y="20.35" class="percentage">25%</text>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="resource-card">
+                            <div class="resource-icon"><i class="fas fa-memory"></i></div>
+                            <div class="resource-info">
+                                <span class="resource-label">Sử Dụng RAM</span>
+                                <div class="resource-bar">
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width: 31.25%"></div>
+                                    </div>
+                                    <span class="resource-text">2.5 GB / 8 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="resource-card">
+                            <div class="resource-icon"><i class="fas fa-hdd"></i></div>
+                            <div class="resource-info">
+                                <span class="resource-label">Lưu Trữ</span>
+                                <div class="resource-bar">
+                                    <div class="bar-track">
+                                        <div class="bar-fill" style="width: 60%"></div>
+                                    </div>
+                                    <span class="resource-text">30 GB / 50 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="resource-card">
+                            <div class="resource-icon"><i class="fas fa-clock"></i></div>
+                            <div class="resource-info">
+                                <span class="resource-label">Thời Gian Còn Lại</span>
+                                <ul class="time-list">
+                                    <li><i class="fas fa-check-circle"></i> 55 điểm <span class="time-badge">→ ?</span></li>
+                                    <li><i class="fas fa-check-circle"></i> Đã Xem Quảng Cáo <span class="time-badge">→ ?</span></li>
+                                    <li><i class="fas fa-minus-circle"></i> Hoàn Thành Liên Kết Ngắn <span class="time-badge">→ ?</span></li>
+                                    <li><i class="fas fa-check-circle"></i> Đạt Bonus Hàng Ngày <span class="time-badge">→ ?</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn-action create"><i class="fas fa-plus-circle"></i> Tạo VPS</button>
+                        <button class="btn-action stop"><i class="fas fa-stop-circle"></i> Dừng VPS</button>
+                        <button class="btn-action extend"><i class="fas fa-clock"></i> Gia Hạn Thời Gian</button>
+                    </div>
+                    
+                    <div class="providers">
+                        <span>Được hỗ trợ bởi:</span>
+                        <div class="provider-logos">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" alt="AWS">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Google_Cloud_logo.svg" alt="Google Cloud">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/f/ff/DigitalOcean_logo.svg" alt="DigitalOcean">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Đăng Nhập</h2>
+            <div class="login-options">
+                <button class="btn-google" id="googleLoginBtn">
+                    <i class="fab fa-google"></i>
+                    Đăng nhập với Google
+                </button>
+                <div class="divider">hoặc</div>
+                <form id="emailLoginForm">
+                    <input type="email" placeholder="Email" id="emailInput" required>
+                    <input type="password" placeholder="Mật khẩu" id="passwordInput" required>
+                    <button type="submit" class="btn-primary">Đăng Nhập</button>
+                </form>
+                <p class="signup-link">Chưa có tài khoản? <a href="#" id="signupLink">Đăng ký ngay</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VPS Configuration Modal -->
+    <div class="modal" id="vpsModal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h2>Cấu Hình VPS</h2>
+            <div class="vps-config">
+                <div class="config-section">
+                    <label>Chọn Cấu Hình:</label>
+                    <select id="vpsConfig" class="config-select">
+                        <option value="2-4-2012">2 CPU / 4 GB RAM - Win 2012 (50 điểm/giờ)</option>
+                        <option value="4-4-all">4 CPU / 4 GB RAM - Tất cả Win (75 điểm/giờ)</option>
+                        <option value="4-8-all" selected>4 CPU / 8 GB RAM - Tất cả Win (100 điểm/giờ)</option>
+                        <option value="2-6-server">2 CPU / 6 GB RAM - Win Server (60 điểm/giờ)</option>
+                        <option value="2-8-server">2 CPU / 8 GB RAM - Win Server (80 điểm/giờ)</option>
+                        <option value="4-6-all">4 CPU / 6 GB RAM - Tất cả Win (90 điểm/giờ)</option>
+                    </select>
+                </div>
+                
+                <div class="config-section">
+                    <label>Hệ Điều Hành:</label>
+                    <select id="vpsOS" class="config-select">
+                        <option value="2025">Windows Server 2025</option>
+                        <option value="2022">Windows Server 2022</option>
+                        <option value="2019">Windows Server 2019</option>
+                        <option value="2012">Windows Server 2012</option>
+                        <option value="11">Windows 11 Professional</option>
+                        <option value="10">Windows 10 Professional</option>
+                    </select>
+                </div>
+                
+                <div class="config-section">
+                    <label>Thời Gian Sử Dụng (Tối đa 6 giờ):</label>
+                    <input type="range" id="vpsTime" min="1" max="6" value="6" class="time-slider">
+                    <span class="time-display" id="timeDisplay">6 giờ (600 điểm)</span>
+                </div>
+                
+                <div class="config-warning">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Sau 7 ngày đầu miễn phí, bạn sẽ bị trừ điểm theo cấu hình đã chọn.</p>
+                </div>
+                
+                <button class="btn-create-vps" id="createVPSBtn">Tạo VPS Ngay</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
