@@ -9,7 +9,7 @@ on:
         type: string
       
       config:
-        description: '⚙️ Cấu hình VPS'
+        description: '⚙️ Cấu Hình VPS'
         required: true
         default: '4-8-all'
         type: choice
@@ -78,7 +78,7 @@ jobs:
     needs: validate-request
     if: needs.validate-request.outputs.is_valid == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ fromJSON(github.event.inputs.duration) * 60 }}
+    timeout-minutes: 360
     
     steps:
       - name: 🔧 Parse Configuration
